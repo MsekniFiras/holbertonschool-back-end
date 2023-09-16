@@ -1,28 +1,50 @@
 #!/usr/bin/python3
-"""
-Write a Python script that, using this REST API, for a given employee ID,
-returns information about his/her TODO list progress
-"""
+'''
+This module defines the REST API
+'''
+import requests
+from sys import argv
+BASE_URL = 'https://jsonplaceholder.typicode.com'
+
+
+def get_name(id):
+    '''Fetch employee name by ID'''
+    response = requests.get(f'{BASE_URL}/users/{id}')
+    response.raise_for_status()
+    user_data = response.json()
+    return user_data.get('name')
+
+
+def get_todos(id):
+    '''Fetch TODOs for the given employee ID'''
+    response = requests.get(f'{BASE_URL}/todos', params={'userId': id})
+    response.raise_for_status()
+    return response.json()
+
+
+def display_todo(id):
+    '''Display the TODO list progress for the given employee ID'''
+    try:
+        employee_name = get_name(id)
+        todos = get_todos(id)
+
+        completed_tasks = [task for task in todos if task['completed']]
+        completed_count = len(completed_tasks)
+        total_tasks = len(todos)
+
+        print(f"Employee {employee_name} is done "
+              f"with tasks({completed_count}/{total_tasks}):")
+
+        for task in completed_tasks:
+            print(f"\t {task['title']}")
+
+    except requests.RequestException as e:
+        print(f"An error occurred: {e}")
+
+
 if __name__ == "__main__":
+    if len(argv) < 2:
+        exit(1)
 
-    import requests
-    import sys
-
-    if len(sys.argv) == 2 and sys.argv[1].isdigit():
-        u_url = 'https://jsonplaceholder.typicode.com/users/'
-        td_url = 'https://jsonplaceholder.typicode.com/todos?userId='
-
-        EMPLOYEE_NAME = requests.get(u_url + sys.argv[1]).json()['name']
-        NUMBER_OF_DONE_TASKS = len([task for task in requests.
-                                    get(td_url + sys.argv[1]).json()
-                                    if task['completed'] is True])
-        TOTAL_NUMBER_OF_TASKS = len(requests.get(td_url + sys.argv[1]).json())
-        DONE_TASKS_TITLES = [task['title'] for task in requests.
-                             get(td_url + sys.argv[1]).json()
-                             if task['completed'] is True]
-
-        print('Employee {} is done with tasks({}/{}):'.
-              format(EMPLOYEE_NAME, NUMBER_OF_DONE_TASKS,
-                     TOTAL_NUMBER_OF_TASKS))
-        for TASK_TITLE in DONE_TASKS_TITLES:
-            print('\t {}'.format(TASK_TITLE))
+    employee_id = int(argv[1])
+    display_todo(employee_id)
